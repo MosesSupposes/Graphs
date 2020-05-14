@@ -132,7 +132,7 @@ class Graph:
             if cur_path[-1] == destination_vertex:
                 return cur_path
             else:
-                for vertex in self.get_neighbors(cur_path[-1]).values():
+                for vertex in self.get_neighbors(cur_path[-1]):
                     if vertex not in visited:
                         visited.add(vertex)
                         s.push(cur_path + [vertex])
