@@ -4,7 +4,7 @@ Simple graph implementation
 from util import Stack, Queue  # These may come in handy
 from functools import reduce
 
-class Graph:
+class MazeGraph:
 
     """Represent a graph as a dictionary of vertices mapping labels to edges."""
     def __init__(self):
@@ -15,20 +15,20 @@ class Graph:
         Add a vertex to the graph.
         """
         if vertex_id not in self.vertices:
-            self.vertices[vertex_id] = set()
+            self.vertices[vertex_id] = {}
             return self.vertices[vertex_id]
         else:
             return None
 
-    def add_edge(self, v1, v2):
+    def add_edge(self, direction, v1, v2):
         """
         Add a directed edge to the graph.
         """
         if v1 in self.vertices:
-            self.vertices[v1].add(v2)
+            self.vertices[v1][direction] = v2
         else:
-            self.vertices[v1] = set()
-            self.vertices[v1].add(v2)
+            self.vertices[v1] = {}
+            self.vertices[v1][direction] = v2
 
     def get_neighbors(self, vertex_id):
         """
@@ -37,7 +37,7 @@ class Graph:
         if vertex_id in self.vertices:
             return self.vertices[vertex_id]
         else:
-            return set()
+            return {} 
 
     def bft(self, starting_vertex):
         """
@@ -53,7 +53,7 @@ class Graph:
             print(vertex)
             visited.add(vertex)
 
-            for next_vert in self.get_neighbors(vertex):
+            for next_vert in self.get_neighbors(vertex).values():
                 if next_vert not in visited:
                     q.enqueue(next_vert)
                     # It hasn't been visited yet, but it will be in the near future.
@@ -74,7 +74,7 @@ class Graph:
             print(vertex)
             visited.add(vertex)
 
-            for next_vert in self.get_neighbors(vertex):
+            for next_vert in self.get_neighbors(vertex).values():
                 if next_vert not in visited:
                     s.push(next_vert)
                     visited.add(next_vert)
@@ -88,7 +88,7 @@ class Graph:
         This should be done using recursion.
         """
         def traverse(vertex, visited):
-            neighbors = self.get_neighbors(vertex)
+            neighbors = self.get_neighbors(vertex).values()
             if vertex not in visited:
                 print(vertex)
                 visited.append(vertex)
@@ -107,14 +107,17 @@ class Graph:
         """
         q = Queue()
         q.enqueue([starting_vertex])
+        visited = set()
 
         while q.size() > 0:
             cur_path = q.dequeue()
             if cur_path[-1] == destination_vertex:
                 return cur_path
             else:
-                for vertex in self.get_neighbors(cur_path[-1]):
-                    q.enqueue(cur_path + [vertex])
+                for vertex in self.get_neighbors(cur_path[-1]).values():
+                    if vertex not in visited:
+                        visited.add(vertex)
+                        q.enqueue(cur_path + [vertex])
         return [] 
 
     def dfs(self, starting_vertex, destination_vertex):
@@ -132,7 +135,7 @@ class Graph:
             if cur_path[-1] == destination_vertex:
                 return cur_path
             else:
-                for vertex in self.get_neighbors(cur_path[-1]):
+                for vertex in self.get_neighbors(cur_path[-1]).values():
                     if vertex not in visited:
                         visited.add(vertex)
                         s.push(cur_path + [vertex])
@@ -150,7 +153,7 @@ class Graph:
                 return path
             else:
                 visited.append(path[-1])
-                for vertex in self.get_neighbors(path[-1]):
+                for vertex in self.get_neighbors(path[-1]).values():
                     if vertex not in visited:
                         shortest_path = find_shortest_path(path + [vertex], visited)
                         if shortest_path is not None:
@@ -162,7 +165,7 @@ class Graph:
 
 
 if __name__ == '__main__':
-    graph = Graph()  # Instantiate your graph
+    graph = MazeGraph()  # Instantiate your graph
     # https://github.com/LambdaSchool/Graphs/blob/master/objectives/breadth-first-search/img/bfs-visit-order.png
     graph.add_vertex(1)
     graph.add_vertex(2)
@@ -171,16 +174,16 @@ if __name__ == '__main__':
     graph.add_vertex(5)
     graph.add_vertex(6)
     graph.add_vertex(7)
-    graph.add_edge(5, 3)
-    graph.add_edge(6, 3)
-    graph.add_edge(7, 1)
-    graph.add_edge(4, 7)
-    graph.add_edge(1, 2)
-    graph.add_edge(7, 6)
-    graph.add_edge(2, 4)
-    graph.add_edge(3, 5)
-    graph.add_edge(2, 3)
-    graph.add_edge(4, 6)
+    graph.add_edge("n", 5, 3)
+    graph.add_edge("s", 6, 3)
+    graph.add_edge("e", 7, 1)
+    graph.add_edge("w", 4, 7)
+    graph.add_edge("e", 1, 2)
+    graph.add_edge("e", 7, 6)
+    graph.add_edge("w", 2, 4)
+    graph.add_edge("s", 3, 5)
+    graph.add_edge("n", 2, 3)
+    graph.add_edge("n", 4, 6)
 
     '''
     Should print:
