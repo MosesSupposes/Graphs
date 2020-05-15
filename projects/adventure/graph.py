@@ -96,7 +96,6 @@ class MazeGraph:
             if room.id in self.vertices and self.is_dead_end(room.id):
                 # travel to the room we popped off the stack before traversing it.
                 directions_to_next_room = self.bfs(player.current_room.id, room.id)
-                print("turkey", directions_to_next_room)
                 for direction in directions_to_next_room:
                     player.travel(direction)
                     path_traveled.append(direction)
@@ -110,15 +109,11 @@ class MazeGraph:
                         player.travel(direction)
                         path_traveled.append(direction)
                         self.traverse(player, s, path_traveled, player.current_room)
-                        # Go back to the starting point
-                        # player.travel(self.opposite_direction[direction])
-                        # path_traveled.append(self.opposite_direction[direction])
 
             # If room is in graph and it has unexplored paths, explore those paths
             elif room.id in self.vertices and not self.is_dead_end(room.id):
                 # travel to the room we popped off the stack before traversing it
                 directions_to_next_room = self.bfs(player.current_room.id, room.id)
-                print("chicken", directions_to_next_room)
                 for direction in directions_to_next_room:
                     player.travel(direction)
                     path_traveled.append(direction)
@@ -129,9 +124,6 @@ class MazeGraph:
                         player.travel(direction)
                         path_traveled.append(direction)
                         self.traverse(player, s, path_traveled, player.current_room)
-                        # Go back to the starting point
-                        # player.travel(self.opposite_direction[direction])
-                        # path_traveled.append(self.opposite_direction[direction])
 
             # If the room isn't a vertex in the graph...
             else:

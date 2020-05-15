@@ -47,8 +47,6 @@ graph = MazeGraph()
 
 # DFT -> BFS (when you reach a dead end)
 path_traveled = graph.dft(player, traversal_path)
-print("here", path_traveled)
-print(graph.vertices)
 
 # TRAVERSAL TEST
 visited_rooms = set()
