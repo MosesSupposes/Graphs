@@ -5,6 +5,7 @@ from util import Stack, Queue  # These may come in handy
 from functools import reduce
 
 class MazeGraph:
+    opposite_direction = {"n": "s", "e": "w", "s": "n", "w": "e"}
 
     """Represent a graph as a dictionary of vertices mapping labels to edges."""
     def __init__(self):
@@ -59,26 +60,80 @@ class MazeGraph:
                     # It hasn't been visited yet, but it will be in the near future.
                     visited.add(next_vert)
 
-    def dft(self, starting_vertex):
+    # def dft(self, starting_vertex, cb=print):
+    #     """
+    #     Print each vertex in depth-first order
+    #     beginning from starting_vertex.
+    #     """
+    #     s = Stack()
+    #     s.push(starting_vertex)
+    #     visited = set()
+
+    #     while s.size() > 0:
+    #         vertex = s.pop()
+    #         # if vertex not in visited:
+    #         cb(vertex)
+    #         visited.add(vertex)
+
+    #         for next_vert in self.get_neighbors(vertex).values():
+    #             if next_vert not in visited:
+    #                 s.push(next_vert)
+    #                 visited.add(next_vert)
+
+    #* An optimization to be made is to not travel to a room that's popped off the stack if that 
+    #* room is a dead end.
+    def dft(self, player, path_traveled):
         """
         Print each vertex in depth-first order
         beginning from starting_vertex.
         """
         s = Stack()
-        s.push(starting_vertex)
-        visited = set()
+        s.push(player.current_room)
 
         while s.size() > 0:
-            vertex = s.pop()
-            # if vertex not in visited:
-            print(vertex)
-            visited.add(vertex)
+            room = s.pop()
 
-            for next_vert in self.get_neighbors(vertex).values():
-                if next_vert not in visited:
-                    s.push(next_vert)
-                    visited.add(next_vert)
-     
+            # If room is in graph and its a dead end, perform a bfs to get unstuck.
+            # Once we're unstuck, we can explore the new paths  
+            if room.id in self.vertices and self.is_dead_end(room.id):
+                # travel to the room we popped off the stack before traversing it.
+                directions_to_next_room = self.bfs(player.current_room.id, room.id)
+                for direction in directions_to_next_room:
+                    player.travel(direction)
+                    path_traveled.append(direction)
+
+                shortest_path_to_non_dead_end = self.escape_dead_end_bfs(room.id)
+                for direction in shortest_path_to_non_dead_end:
+                    player.travel(direction)
+                    path_traveled.append(direction)
+                for direction in self.vertices[player.current_room.id]:
+                    if room == "?":
+                        player.travel(direction)
+                        path_traveled.append(direction)
+                        self.traverse(player, s, path_traveled, player.current_room)
+
+            # If room is in graph and it has unexplored paths, explore those paths
+            elif room.id in self.vertices and not self.is_dead_end(room.id):
+                # travel to the room we popped off the stack before traversing it
+                directions_to_next_room = self.bfs(player.current_room.id, room.id)
+                for direction in directions_to_next_room:
+                    player.travel(direction)
+                    path_traveled.append(direction)
+
+                # explore the room
+                for direction in self.vertices[room.id]:
+                    if self.vertices[room.id][direction] == "?":
+                        player.travel(direction)
+                        path_traveled.append(direction)
+                        self.traverse(player, s, path_traveled, player.current_room)
+
+            # If the room isn't a vertex in the graph...
+            else:
+                # add it to the graph and explore it
+                self.add_vertex(room.id)
+                self.traverse(player, s, path_traveled, room)
+
+        return path_traveled
 
     def dft_recursive(self, starting_vertex):
         """
@@ -99,25 +154,70 @@ class MazeGraph:
         return traverse(starting_vertex, [])
                  
 
-    def bfs(self, starting_vertex, destination_vertex):
+    # def bfs(self, starting_vertex, destination_vertex):
+    #     """
+    #     Return a list containing the shortest path from
+    #     starting_vertex to destination_vertex in
+    #     breath-first order.
+    #     """
+    #     q = Queue()
+    #     q.enqueue([starting_vertex])
+    #     visited = set()
+
+    #     while q.size() > 0:
+    #         cur_path = q.dequeue()
+    #         if cur_path[-1] == destination_vertex:
+    #             return cur_path
+    #         else:
+    #             for vertex in self.get_neighbors(cur_path[-1]).values():
+    #                 if vertex not in visited:
+    #                     visited.add(vertex)
+    #                     q.enqueue(cur_path + [vertex])
+    #     return [] 
+    def bfs(self, starting_room_id, destination_room_id):
         """
         Return a list containing the shortest path from
         starting_vertex to destination_vertex in
         breath-first order.
         """
         q = Queue()
-        q.enqueue([starting_vertex])
+        q.enqueue([(None, starting_room_id)])
         visited = set()
 
         while q.size() > 0:
             cur_path = q.dequeue()
-            if cur_path[-1] == destination_vertex:
-                return cur_path
+            if cur_path[-1][1] == destination_room_id:
+                # Return a list of directions to the path
+                directions = list(map(lambda path: path[0], cur_path))
+                # The first direction that was added to the queue was None
+                return list(filter(lambda direction: direction is not None, directions))
             else:
-                for vertex in self.get_neighbors(cur_path[-1]).values():
-                    if vertex not in visited:
-                        visited.add(vertex)
-                        q.enqueue(cur_path + [vertex])
+                for direction, room_id in self.get_neighbors(cur_path[-1][1]).items():
+                    if room_id not in visited:
+                        visited.add(room_id)
+                        q.enqueue(cur_path + [(direction, room_id)])
+        return [] 
+    def escape_dead_end_bfs(self, starting_room_id):
+        """
+        Return a list containing the shortest path from
+        starting_vertex to destination_vertex in
+        breath-first order.
+        """
+        q = Queue()
+        q.enqueue([(None, starting_room_id)])
+        visited = set()
+
+        while q.size() > 0:
+            cur_path = q.dequeue()
+            if not self.is_dead_end(cur_path[-1][1]):
+                directions_to_non_dead_end =  list(map(lambda path: path[0], cur_path))
+                # The initial item on the queue had a direction of None
+                return list(filter(lambda direction: direction is not None, directions_to_non_dead_end))
+            else:
+                for direction, room_id in self.vertices[cur_path[-1][1]].items():
+                    if room_id not in visited:
+                        visited.add(room_id)
+                        q.enqueue(cur_path + [(direction, room_id)])
         return [] 
 
     def dfs(self, starting_vertex, destination_vertex):
@@ -140,6 +240,7 @@ class MazeGraph:
                         visited.add(vertex)
                         s.push(cur_path + [vertex])
 
+
     def dfs_recursive(self, starting_vertex, destination_vertex):
         """
         Return a list containing a path from
@@ -161,6 +262,54 @@ class MazeGraph:
                 return None       
 
         return find_shortest_path([starting_vertex], [])
+    
+    # Traverse an explored room, creating directed links between the room and its neighbors, and populatin 
+    # the neigbors' neigbors rooms with "?"s. Also, adding the neigbors' neigbors to the stack for future exploration.
+    def traverse(self, player, stack, path_traveled, room):
+        for direction in room.get_exits():
+            if room.id not in self.vertices:
+                player.travel(direction)
+                path_traveled.append(direction)
+                # Add a directed edge
+                self.add_edge(direction, room.id, player.current_room.id)
+                self.add_edge(self.opposite_direction[direction], player.current_room.id, room.id)
+                # Auto fill the room's exits with a "?" (except for the directed edge from above)
+                for direction2 in player.current_room.get_exits():
+                    if direction2 != self.opposite_direction[direction]: 
+                        if player.current_room.id not in self.vertices or self.vertices[player.current_room.id].get(direction2) is None:
+                            self.add_edge(direction2, player.current_room.id, "?")
+                # Add this unexplored room to the stack to be traversed later
+                if not self.is_dead_end(player.current_room.id):
+                    stack.push(player.current_room)
+                # Travel back to the starting point 
+                player.travel(self.opposite_direction[direction])
+                path_traveled.append(self.opposite_direction[direction]) 
+            elif (direction not in self.vertices[room.id]) or (direction in self.vertices[room.id] and self.vertices[room.id][direction] == "?"):
+                player.travel(direction)
+                path_traveled.append(direction)
+                # Add a directed edge
+                self.add_edge(direction, room.id, player.current_room.id)
+                self.add_edge(self.opposite_direction[direction], player.current_room.id, room.id)
+                # Auto fill the room's exits with a "?" (except for the directed edge from above)
+                for direction2 in player.current_room.get_exits():
+                    if direction2 != self.opposite_direction[direction]: 
+                        if player.current_room.id not in self.vertices or self.vertices[player.current_room.id].get(direction2) is None:
+                            self.add_edge(direction2, player.current_room.id, "?")
+                # Add this unexplored room to the stack to be traversed later
+                if not self.is_dead_end(player.current_room.id):
+                    stack.push(player.current_room)
+                # Travel back to the starting point 
+                player.travel(self.opposite_direction[direction])
+                path_traveled.append(self.opposite_direction[direction])
+        
+    def is_dead_end(self, room_id):
+        if room_id in self.vertices:
+            for room in self.vertices[room_id].values():
+                if room == "?":
+                    return False
+            return True
+        else:
+            raise IndexError("The room with the id of " + room_id + " is not a vertex in the graph.")
         
 
 
