@@ -86,6 +86,7 @@ class MazeGraph:
         """
         s = Stack()
         s.push(player.current_room)
+        prev_room = None
 
         while s.size() > 0:
             room = s.pop()
@@ -93,6 +94,13 @@ class MazeGraph:
             # If room is in graph and its a dead end, perform a bfs to get unstuck.
             # Once we're unstuck, we can explore the new paths  
             if room.id in self.vertices and self.is_dead_end(room.id):
+                # travel to the room we popped off the stack before traversing it.
+                for direction, neighboring_room in self.vertices[prev_room.id].items():
+                    if neighboring_room == room.id:
+                        direction_to_next_room = direction
+                player.travel(direction_to_next_room)
+                path_traveled.append(direction_to_next_room)
+
                 shortest_path_to_non_dead_end = self.bfs(room.id)
                 for direction in shortest_path_to_non_dead_end:
                     player.travel(direction)
@@ -105,21 +113,34 @@ class MazeGraph:
                         # Go back to the starting point
                         player.travel(self.opposite_direction[direction])
                         path_traveled.append(self.opposite_direction[direction])
+
             # If room is in graph and it has unexplored paths, explore those paths
             elif room.id in self.vertices and not self.is_dead_end(room.id):
-               for direction in self.vertices[room.id]:
-                   if self.vertices[room.id][direction] == "?":
-                       player.travel(direction)
-                       path_traveled.append(direction)
-                       self.traverse(player, s, path_traveled, player.current_room)
-                       # Go back to the starting point
-                       player.travel(self.opposite_direction[direction])
-                       path_traveled.append(self.opposite_direction[direction])
+                # travel to the room we popped off the stack before traversing it
+                for direction, neighboring_room in self.vertices[prev_room.id].items():
+                    if neighboring_room == room.id:
+                        direction_to_next_room = direction
+                player.travel(direction_to_next_room)
+                path_traveled.append(direction_to_next_room)
+
+                # explore the room
+                for direction in self.vertices[room.id]:
+                    if self.vertices[room.id][direction] == "?":
+                        player.travel(direction)
+                        path_traveled.append(direction)
+                        self.traverse(player, s, path_traveled, player.current_room)
+                        # Go back to the starting point
+                        player.travel(self.opposite_direction[direction])
+                        path_traveled.append(self.opposite_direction[direction])
+
             # If the room isn't a vertex in the graph...
             else:
                 # add it to the graph and explore it
                 self.add_vertex(room.id)
                 self.traverse(player, s, path_traveled, room)
+
+            # keep track of the room we're about to exit in the next loop
+            prev_room = room
 
         return path_traveled
 
@@ -162,27 +183,27 @@ class MazeGraph:
     #                     visited.add(vertex)
     #                     q.enqueue(cur_path + [vertex])
     #     return [] 
-    def bfs(self, starting_room):
+    def bfs(self, starting_room_id):
         """
         Return a list containing the shortest path from
         starting_vertex to destination_vertex in
         breath-first order.
         """
         q = Queue()
-        q.enqueue([(None, starting_room)])
+        q.enqueue([(None, starting_room_id)])
         visited = set()
 
         while q.size() > 0:
             cur_path = q.dequeue()
-            if not self.is_dead_end(cur_path[-1][1].id):
+            if not self.is_dead_end(cur_path[-1][1]):
                 directions_to_non_dead_end =  list(map(lambda path: path[0], cur_path))
                 # The initial item on the queue had a direction of None
                 return list(filter(lambda direction: direction is not None, directions_to_non_dead_end))
             else:
-                for direction, room in self.vertices[cur_path[-1][1].id].items():
-                    if room not in visited:
-                        visited.add(room)
-                        q.enqueue(cur_path + [(direction, room)])
+                for direction, room_id in self.vertices[cur_path[-1][1]].items():
+                    if room_id not in visited:
+                        visited.add(room_id)
+                        q.enqueue(cur_path + [(direction, room_id)])
         return [] 
 
     def dfs(self, starting_vertex, destination_vertex):
@@ -236,12 +257,13 @@ class MazeGraph:
             # Add a directed edge
             self.add_edge(direction, room.id, player.current_room.id)
             self.add_edge(self.opposite_direction[direction], player.current_room.id, room.id)
-            if player.current_room.id not in self.vertices:
-                # Auto fill the room's exits with a "?" (except for the directed edge from above)
-                for direction2 in player.current_room.get_exits():
-                    if direction2 != direction: 
+            # Auto fill the room's exits with a "?" (except for the directed edge from above)
+            for direction2 in player.current_room.get_exits():
+                if direction2 != self.opposite_direction[direction]: 
+                    if player.current_room.id not in self.vertices or direction2 not in self.vertices[player.current_room.id]:
                         self.add_edge(direction2, player.current_room.id, "?")
-                # Add this unexplored room to the stack to be traversed later
+            # Add this unexplored room to the stack to be traversed later
+            if not self.is_dead_end(player.current_room.id):
                 stack.push(player.current_room)
             # Travel back to the starting point 
             player.travel(self.opposite_direction[direction])
