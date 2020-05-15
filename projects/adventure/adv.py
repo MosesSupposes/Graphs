@@ -32,12 +32,17 @@ player = Player(world.starting_room)
 traversal_path = []
 graph = MazeGraph()
 
-# while len(visited_rooms) != len(room_graph):
-        # traversal_path.append(direction)
-        # if player.current_room not in visited_rooms:
-                # visited_rooms.add(player.current_room)
 
+# room_graph_vertices = {}
+# for room_id, verts in room_graph.items():
+#     room_graph_vertices[room_id] = verts[1]
 
+# def traverse(direction):
+#     traversal_path.append(direction)
+
+# graph.vertices = room_graph_vertices
+# graph.dft2(player.current_room.id, traverse)
+# print(traversal_path)
 
 
 # DFT -> BFS (when you reach a dead end)
