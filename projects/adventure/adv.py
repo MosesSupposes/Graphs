@@ -2,6 +2,7 @@ from room import Room
 from player import Player
 from world import World
 from graph import MazeGraph
+from util import Queue
 
 import random
 from ast import literal_eval
@@ -29,13 +30,20 @@ player = Player(world.starting_room)
 # Fill this out with directions to walk
 # traversal_path = ['n', 'n']
 traversal_path = []
-visited_rooms = set()
 graph = MazeGraph()
 
-while len(visited_rooms) != len(room_graph):
-   pass 
+# while len(visited_rooms) != len(room_graph):
+        # traversal_path.append(direction)
+        # if player.current_room not in visited_rooms:
+                # visited_rooms.add(player.current_room)
 
 
+
+
+# DFT -> BFS (when you reach a dead end)
+path_traveled = graph.dft(player, traversal_path)
+print("here", path_traveled)
+print(graph.vertices)
 
 # TRAVERSAL TEST
 visited_rooms = set()
