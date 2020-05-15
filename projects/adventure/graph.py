@@ -80,6 +80,8 @@ class MazeGraph:
     #                 s.push(next_vert)
     #                 visited.add(next_vert)
 
+    #* An optimization to be made is to not travel to a room that's popped off the stack if that 
+    #* room is a dead end.
     def dft(self, player, path_traveled):
         """
         Print each vertex in depth-first order
